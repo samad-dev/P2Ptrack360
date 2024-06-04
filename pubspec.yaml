@@ -38,6 +38,7 @@ dependencies:
   shared_preferences: ^2.0.18
   flutter_svg: ^2.0.7
   google_fonts: ^6.0.0
+  image_picker: ^0.8.2
   fl_chart: ^0.63.0
   charts_flutter:
   fluentui_system_icons: ^1.1.216
@@ -47,10 +48,17 @@ dependencies:
   intl: ^0.17.0
   fluttertoast:
   syncfusion_flutter_charts: 19.2.62
+  change_app_package_name: ^1.1.0
+  webview_flutter: 2.0.13
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/1024.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

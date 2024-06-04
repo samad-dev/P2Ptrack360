@@ -10,9 +10,12 @@ import 'package:hascol_dealer/screens/login.dart';
 import 'package:hascol_dealer/screens/order_list.dart';
 import 'package:hascol_dealer/screens/profile.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-
+import 'chat_screen.dart';
 import 'create_order.dart';
 import 'home.dart';
 
@@ -23,30 +26,35 @@ class Home extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
+
 class _HomeScreenState extends State<Home> {
   final List<chartdata> ChartData = [
-    chartdata("Jan", 20, 30, 40),
-    chartdata("Feb", 20, 30, 40),
-    chartdata("Mar", 20, 30, 40),
-    chartdata("Apr", 20, 30, 40),
-    chartdata("May", 20, 30, 40),
-    chartdata("Jun", 20, 30, 40),
-    chartdata("Jul", 20, 30, 40),
-    chartdata("Aug", 20, 30, 40),
-    chartdata("Sep", 20, 30, 40),
-    chartdata("Oct", 20, 30, 40),
-    chartdata("Nov", 20, 30, 40),
-    chartdata("Dec", 20, 30, 40),
+    chartdata("Jan", 07),
+
   ];
+  late List<chartdata> ChartData2 = [];
+  final List<chartdata> ChartData3 = [];
+  final List<chartdata> ChartData4 = [];
   final double width = 7;
   late List<BarChartGroupData> rawBarGroups;
   late List<BarChartGroupData> showingBarGroups;
   int _selectedIndex = 0;
   int touchedGroupIndex = -1;
+  late List open = [];
+  late List closed =[];
+  late List pending = [];
+  late List total = [];
+  String fname ='';
+  String lname ='';
+  String newname ='';
+
+
 
   @override
   void initState() {
     super.initState();
+    getData();
+    get_detail();
 
     final barGroup1 = makeGroupData(1, 5, 12);
     final barGroup2 = makeGroupData(1, 16, 12);
@@ -89,8 +97,7 @@ class _HomeScreenState extends State<Home> {
       text = '10K';
     } else if (value == 25) {
       text = '15K';
-    }
-    else {
+    } else {
       return Container();
     }
     return SideTitleWidget(
@@ -193,6 +200,72 @@ class _HomeScreenState extends State<Home> {
       ],
     );
   }
+  getData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String company_id = prefs.getString("company_id").toString();
+    String bu_id = prefs.getString("bu_id").toString();
+    String id = prefs.getString("id").toString();
+
+
+    var request = http.Request('GET', Uri.parse('http://3.137.76.254/api/dashboard/index/$company_id/Manager/$bu_id/$id'));
+    print('http://3.137.76.254/api/dashboard/index/$company_id/Manager/$bu_id/$id');
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      List<dynamic> jsons = jsonDecode(json);
+      print("Samad" + jsons.length.toString());
+      setState(() {
+        open = jsons.where((person) => person['status_title'] == 'Open').toList();
+        closed = jsons.where((person) => person['status_title'] == 'Close').toList();
+        pending = jsons.where((person) => person['status_title'] == 'Pending').toList();
+        total = jsons;
+        get_ChartData2(json,'status_title',ChartData2);
+        get_ChartData2(json,'priority_title',ChartData3);
+        get_ChartData2(json,'impact_title',ChartData4);
+      });
+
+      print('${open.length}+${closed.length}+${pending.length}=${jsons.length}');
+    } else {
+      print(response.reasonPhrase);
+    }
+  }
+  get_detail() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    fname  = prefs.getString('first_name').toString();
+    lname  = prefs.getString('last_name').toString();
+    String firstInitial = fname.isNotEmpty ? fname.substring(0, 1) : '';
+    String lastInitial = lname.isNotEmpty ? lname.substring(0, 1) : '';
+    newname = '$firstInitial$lastInitial';
+  }
+  get_ChartData2(json, String title, List<chartdata> chartData) async {
+    List<dynamic> parsedJson = jsonDecode(json);
+    Map<String, int> statusOccurrences = {};
+    parsedJson.forEach((item) {
+      String statusTitle = item[title];
+      statusOccurrences[statusTitle] = (statusOccurrences[statusTitle] ?? 0) + 1;
+    });
+    // Populate chartData2 list
+    statusOccurrences.forEach((title, occurrence) {
+      setState(() {
+        chartData.add(chartdata(title, occurrence));
+      });
+      print(chartData);
+    });
+  }
+  Future<void> selectCustomDate(BuildContext context,DateController) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (picked != null && picked != DateController.text) {
+      setState(() {
+        DateController.text = picked.toLocal().toString().split(' ')[0];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,544 +278,697 @@ class _HomeScreenState extends State<Home> {
           padding: const EdgeInsets.only(top: 48.0, left: 5, right: 5),
           child: Column(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Color(0xff12283D),
-                        radius: 30,
-                        child: Text(
-                          'SB',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontStyle: FontStyle.normal,
-                          ),
-                        ), //Text
-                      ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome Home,',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Color(0xff8A8A8A),
-                                fontWeight: FontWeight.w500,
-                                fontStyle: FontStyle.italic,
-                              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Color(0xff12283D),
+                          radius: 30,
+                          child: Text(
+                            '$newname',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontStyle: FontStyle.normal,
                             ),
-                            Text(
-                              'Sales Bridge',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Color(0xff000000),
-                                fontWeight: FontWeight.w800,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
+                          ), //Text
                         ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        // Use the FaIcon Widget + FontAwesomeIcons class for the IconData
-                          icon: Icon(
-                            Icons.add_box_rounded,
-                            color: Color(0xff12283D),
-                            size: 35,
+                        SizedBox(
+                          width: 5,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome,',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Color(0xff8A8A8A),
+                                  fontWeight: FontWeight.w500,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                              Text(
+                                '$fname $lname',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Color(0xff000000),
+                                  fontWeight: FontWeight.w800,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => Create_Order()),
-                            );
-                            print("Pressed");
-                          }),
-                    ],
-                  ),
-                ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                            onPressed: (){
+                              String? selectedDate = 'Date Range';
+                              String selectedAssignee = '';
+                              bool showCustomDateTextField = false;
+                              TextEditingController DateController = TextEditingController();
+
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (BuildContext bc) {
+                                  return StatefulBuilder(
+                                    builder: (BuildContext context, StateSetter setState) {
+                                      return Container(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: <Widget>[
+                                            DropdownButtonFormField<String>(
+                                              value: selectedDate,
+                                              style: TextStyle(fontSize: 16.0, color: Colors.black),
+                                              icon: Icon(Icons.arrow_drop_down),
+                                              iconSize: 30.0,
+                                              decoration: InputDecoration(
+                                                border: OutlineInputBorder( // Customize the border
+                                                  borderSide: BorderSide(color: Colors.grey), // Set border color
+                                                  borderRadius: BorderRadius.circular(5.0),
+                                                ),
+                                                focusedBorder: OutlineInputBorder( // Customize focused border
+                                                  borderSide: BorderSide(color: Colors.grey), // Set border color
+                                                  borderRadius: BorderRadius.circular(5.0),
+                                                ),
+                                                hintText: 'Date Range', // Add hint text
+                                              ),
+                                              items: <String>[
+                                                'Date Range',
+                                                'Today',
+                                                'Yesterday',
+                                                'Last two days',
+                                                'Last week',
+                                                'Last month',
+                                                'Custom date'
+                                              ].map((String value) {
+                                                return DropdownMenuItem<String>(
+                                                  value: value,
+                                                  child: Text(value),
+                                                );
+                                              }).toList(),
+                                              onChanged: (String? newValue) {
+                                                setState(() {
+                                                  selectedDate = newValue;
+                                                  if (newValue == 'Custom date') {
+                                                    showCustomDateTextField = true;
+                                                  } else {
+                                                    showCustomDateTextField = false;
+                                                  }
+                                                });
+                                              },
+                                              isExpanded: true,
+                                            ),
+                                            SizedBox(height: 5,),
+                                            if (showCustomDateTextField)
+                                              GestureDetector(
+                                                onTap: () => selectCustomDate(context, DateController),
+                                                child: AbsorbPointer(
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: Colors.grey, // Set the color of the border
+                                                        width: 1.0, // Set the width of the border
+                                                      ),
+                                                      borderRadius: BorderRadius.circular(8.0), // Set the border radius to achieve squared corners
+                                                    ),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8.0), // Add padding to the TextFormField
+                                                      child: TextFormField(
+                                                        controller: DateController,
+                                                        decoration: InputDecoration(
+                                                          labelText: 'Ticket Resolved Date',
+                                                          border: InputBorder.none, // Remove the default border of TextFormField
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            SizedBox(height: 20.0),
+                                            Text(
+                                              'Assignee:',
+                                              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                                            ),
+                                            ListTile(
+                                              title: Text('Assign to me'),
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedAssignee = 'Assign to me';
+                                                });
+                                              },
+                                              selected: selectedAssignee == 'Assign to me',
+                                              selectedTileColor: Colors.grey[200],
+                                            ),
+                                            ListTile(
+                                              title: Text('Created by me'),
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedAssignee = 'Created by me';
+                                                });
+                                              },
+                                              selected: selectedAssignee == 'Created by me',
+                                              selectedTileColor: Colors.grey[200],
+                                            ),
+                                            ListTile(
+                                              title: Text('Both'),
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedAssignee = 'Both';
+                                                });
+                                              },
+                                              selected: selectedAssignee == 'Both',
+                                              selectedTileColor: Colors.grey[200],
+                                            ),
+                                            SizedBox(height: 20.0),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text('Apply Filters'),
+                                              style: ButtonStyle(
+                                                backgroundColor: MaterialStateProperty.all(Color(0xff12283D))
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                            icon: Icon(
+                              FluentIcons.filter_28_filled,
+                              color: Colors.black54,
+                              size: 35,
+                            )
+                        ),
+                        IconButton(
+                            // Use the FaIcon Widget + FontAwesomeIcons class for the IconData
+                            icon: Icon(
+                              Icons.add_box_rounded,
+                              color: Color(0xff12283D),
+                              size: 35,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => Create_Order()),
+                              );
+                              print("Pressed");
+                            }),
+                      ],
+                    )
+                  ],
+                ),
               ),
               SizedBox(
                 height: 20,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Card(
-                    color: Color(0xffF0F0F0),
-                    elevation: 15,
-                    child: SizedBox(
-                      width: MediaQuery
-                          .of(context)
-                          .size
-                          .width / 1.07,
-                      height: 140,
-                      child: Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            //CircleAvatar
-                            const SizedBox(
-                              height: 10,
-                            ), //SizedBox
-                            Text(
-                              'Ledger Balance',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Color(0xff000000),
-                                fontWeight: FontWeight.w500,
-                                fontStyle: FontStyle.normal,
-                              ),
-                            ), //Text
-                            const SizedBox(
-                              height: 50,
-                            ),
-                            Row(
+              Padding(
+                padding: const EdgeInsets.only(left: 5.0, right: 5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          side: BorderSide(
+                            color: Color(0xffEBEBEB),
+                          ),
+                        ),
+                        color: Color(0xff12283D),
+                        child: SizedBox(
+                          width: 165,
+                          height: 80,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                CircleAvatar(
-                                    backgroundColor: Color(0xff7DBDBD),
-                                    radius: 15,
-                                    child: Icon(
-                                      FluentIcons.payment_32_filled,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ) //Text
+                                const SizedBox(
+                                  height: 5,
                                 ),
-                                SizedBox(
-                                  width: 5,
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      '3,75,000 Rs.',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: Color(0xff000000),
-                                        fontWeight: FontWeight.w600,
-                                        fontStyle: FontStyle.italic,
-                                      ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${total.length}',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xffffffff),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 26,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Total Tickets',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xffc7c7c7),
+                                            fontWeight: FontWeight.w300,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      'Updated On : ${formattedDate}',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
-                                        color: Color(0xff8A8A8A),
-                                        fontWeight: FontWeight.w300,
-                                        fontStyle: FontStyle.italic,
+                                    Card(
+                                      color: Color(0xffF0F0FA),
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(color: Colors.white70),
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: SizedBox(
+                                        width: 30,
+                                        height: 30,
+                                        child: Icon(
+                                          FluentIcons
+                                              .ticket_diagonal_28_regular,
+                                          color: Color(0xff586776),
+                                        ),
                                       ),
                                     ),
                                   ],
+                                ), //Text
+                                const SizedBox(
+                                  height: 5,
                                 ),
+
+                                //SizedBox
+                                //T //SizedBox
+                                //SizedBox
                               ],
-                            ),
-
-                            //SizedBox
-                            //T //SizedBox
-                            //SizedBox
-                          ],
-                        ), //Column
-                      ), //Padding
-                    ), //SizedBox,
-                  )
-                ],
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(10))),
-                      color: Color(0xff12283D),
-                      elevation: 15,
-                      child: SizedBox(
-                        width: 165,
-                        height: 160,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                height: 5,
-                              ),
-                              Card(
-                                color: Color(0xff586776),
-                                child: SizedBox(
-                                  width: 30,
-                                  height: 30,
-                                  child: Icon(
-                                    Icons.bookmark_border,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ), //Text
-                              const SizedBox(
-                                height: 5,
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Total Orders',
-                                    style: GoogleFonts.poppins(
-                                      color: Color(0xffffffff),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                      fontStyle: FontStyle.normal,
-                                    ),
-                                  ),
-                                  Text(
-                                    '100 Orders',
-                                    style: GoogleFonts.montserrat(
-                                      color: Color(0xffc7c7c7),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.normal,
-                                    ),
-                                  ),
-
-                                  OutlinedButton(
-                                    child: Text('Create Order',
-                                      style: GoogleFonts.montserrat(
-                                        color: Color(0xffc7c7c7),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                        fontStyle: FontStyle.normal,
-                                      ),),
-
-                                    style: OutlinedButton.styleFrom(
-                                      side: BorderSide(width: 1.0, color: Color(
-                                          0xd5e0e0e0)),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) =>
-                                            Create_Order()),
-                                      );
-                                    },
-                                  )
-
-                                ],
-                              ),
-
-                              //SizedBox
-                              //T //SizedBox
-                              //SizedBox
-                            ],
-                          ), //Column
-                        ), //Padding
-                      ), //SizedBox,
+                            ), //Column
+                          ), //Padding
+                        ), //SizedBox,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(10))),
-                      color: Color(0xffF0F0F0),
-                      elevation: 15,
-                      child: SizedBox(
-                        width: 165,
-                        height: 160,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                height: 5,
-                              ),
-                              Card(
-                                color: Color(0x283C81B5),
-                                child: SizedBox(
-                                  width: 30,
-                                  height: 30,
-                                  child: Icon(
-                                    Icons.crisis_alert,
-                                    color: Color(0xff12283D),
-                                  ),
-                                ),
-                              ), //Text
-
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Total Complaints',
-                                    style: GoogleFonts.poppins(
-                                      color: Color(0xff12283D),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                      fontStyle: FontStyle.normal,
-                                    ),
-                                  ),
-                                  Text(
-                                    '15 Complaints',
-                                    style: GoogleFonts.montserrat(
-                                      color: Color(0xff8D8D8D),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.normal,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    height: 8,
-                                  ),
-                                  OutlinedButton(
-                                    child: Text('Create Complaint',
-                                      style: GoogleFonts.montserrat(
-                                        color: Color(0xff8D8D8D),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                        fontStyle: FontStyle.normal,
-                                      ),),
-
-                                    style: OutlinedButton.styleFrom(
-                                      side: BorderSide(width: 1.0, color: Color(
-                                          0xd5e0e0e0)),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) =>
-                                            Create_Complaints()),
-                                      );
-                                      print('Pressed');
-                                    },
-                                  )
-
-                                ],
-                              ),
-
-                              //SizedBox
-                              //T //SizedBox
-                              //SizedBox
-                            ],
-                          ), //Column
-                        ), //Padding
-                      ), //SizedBox,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              /*
-              Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                color: Color(0xff12283D),
-                child: AspectRatio(
-                  aspectRatio: 1.3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            makeTransactionsIcon(),
-                            const SizedBox(
-                              width: 38,
-                            ),
-                            const Text(
-                              'Order History',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 22),
-                            ),
-                            // const SizedBox(
-                            //   width: 4,
-                            // ),
-                            // const Text(
-                            //   'state',
-                            //   style: TextStyle(color: Color(0xff77839a), fontSize: 16),
-                            // ),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 38,
-                        ),
-                        Expanded(
-                          child: BarChart(
-                            BarChartData(
-                              maxY: 20,
-                              barTouchData: BarTouchData(
-                                touchTooltipData: BarTouchTooltipData(
-                                  tooltipBgColor: Colors.grey,
-                                  getTooltipItem: (a, b, c, d) => null,
-                                ),
-                                touchCallback: (FlTouchEvent event, response) {
-                                  if (response == null ||
-                                      response.spot == null) {
-                                    setState(() {
-                                      touchedGroupIndex = -1;
-                                      showingBarGroups = List.of(rawBarGroups);
-                                    });
-                                    return;
-                                  }
-
-                                  touchedGroupIndex =
-                                      response.spot!.touchedBarGroupIndex;
-
-                                  setState(() {
-                                    if (!event.isInterestedForInteractions) {
-                                      touchedGroupIndex = -1;
-                                      showingBarGroups = List.of(rawBarGroups);
-                                      return;
-                                    }
-                                    showingBarGroups = List.of(rawBarGroups);
-                                    if (touchedGroupIndex != -1) {
-                                      var sum = 0.0;
-                                      for (final rod
-                                      in showingBarGroups[touchedGroupIndex]
-                                          .barRods) {
-                                        sum += rod.toY;
-                                      }
-                                      final avg = sum /
-                                          showingBarGroups[touchedGroupIndex]
-                                              .barRods
-                                              .length;
-
-                                      showingBarGroups[touchedGroupIndex] =
-                                          showingBarGroups[touchedGroupIndex]
-                                              .copyWith(
-                                            barRods: showingBarGroups[touchedGroupIndex]
-                                                .barRods
-                                                .map((rod) {
-                                              return rod.copyWith(
-                                                  toY: avg,
-                                                  color: widget.rightBarColor);
-                                            }).toList(),
-                                          );
-                                    }
-                                  });
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: bottomTitles,
-                                    reservedSize: 42,
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 28,
-                                    interval: 1,
-                                    getTitlesWidget: leftTitles,
-                                  ),
-                                ),
-                              ),
-                              borderData: FlBorderData(
-                                show: false,
-                              ),
-                              barGroups: showingBarGroups,
-                              gridData: const FlGridData(show: false),
-                            ),
-                            swapAnimationDuration: Duration(milliseconds: 150),
-                            // Optional
-                            swapAnimationCurve: Curves.linear,
+                    Expanded(
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          side: BorderSide(
+                            color: Color(0xffEBEBEB),
                           ),
                         ),
-                        const SizedBox(
-                          height: 12,
-                        ),
-                      ],
+                        color: Color(0xffffffff),
+                        child: SizedBox(
+                          width: 165,
+                          height: 80,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${closed.length}',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xff106db6),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 26,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Completed Tickets',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xff12283D),
+                                            fontWeight: FontWeight.w300,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Card(
+                                      color: Color(0xffF0F0FA),
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(color: Colors.white70),
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: SizedBox(
+                                        width: 30,
+                                        height: 30,
+                                        child: Icon(
+                                          FluentIcons
+                                              .ticket_diagonal_28_regular,
+                                          color: Color(0xff586776),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ), //Text
+                                const SizedBox(
+                                  height: 5,
+                                ),
+
+                                //SizedBox
+                                //T //SizedBox
+                                //SizedBox
+                              ],
+                            ), //Column
+                          ), //Padding
+                        ), //SizedBox,
+                      ),
                     ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 5.0, right: 5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          side: BorderSide(
+                            color: Color(0xffEBEBEB),
+                          ),
+                        ),
+                        color: Color(0xffffffff),
+                        child: SizedBox(
+                          width: 165,
+                          height: 80,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${pending.length}',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xff106db6),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 26,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Pending Tickets',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xff12283D),
+                                            fontWeight: FontWeight.w300,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Card(
+                                      color: Color(0xffF0F0FA),
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(color: Colors.white70),
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: SizedBox(
+                                        width: 30,
+                                        height: 30,
+                                        child: Icon(
+                                          FluentIcons
+                                              .ticket_diagonal_28_regular,
+                                          color: Color(0xff586776),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ), //Text
+                                const SizedBox(
+                                  height: 5,
+                                ),
+
+                                //SizedBox
+                                //T //SizedBox
+                                //SizedBox
+                              ],
+                            ), //Column
+                          ), //Padding
+                        ), //SizedBox,
+                      ),
+                    ),
+                    Expanded(
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          side: BorderSide(
+                            color: Color(0xffEBEBEB),
+                          ),
+                        ),
+                        color: Color(0xff12283D),
+                        child: SizedBox(
+                          width: 165,
+                          height: 80,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${open.length}',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xffffffff),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 26,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                        Text(
+                                          'In Progress Tickets',
+                                          style: GoogleFonts.workSans(
+                                            color: Color(0xffc7c7c7),
+                                            fontWeight: FontWeight.w300,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Card(
+                                      color: Color(0xffF0F0FA),
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(color: Colors.white70),
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: SizedBox(
+                                        width: 30,
+                                        height: 30,
+                                        child: Icon(
+                                          FluentIcons
+                                              .ticket_diagonal_28_regular,
+                                          color: Color(0xff586776),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ), //Text
+                                const SizedBox(
+                                  height: 5,
+                                ),
+
+                                //SizedBox
+                                //T //SizedBox
+                                //SizedBox
+                              ],
+                            ), //Column
+                          ), //Padding
+                        ), //SizedBox,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10,),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Card(
+                  elevation: 20,
+                  color: Color(0xffffffff),
+                  child: Column(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text("Ticket History",
+                            style: GoogleFonts.outfit(
+                                color: Color(0xff12283D),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w300)),
+                      ),
+                      Container(
+                        child: SfCartesianChart(
+                          plotAreaBorderWidth: 0, // Remove plot area border
+                          plotAreaBorderColor: Colors.transparent,
+                          borderColor: Colors.transparent,
+                          primaryYAxis: NumericAxis(
+                              labelStyle: TextStyle(
+                                color: Color(0xff12283D),
+                              ),
+                              majorGridLines: MajorGridLines(width: 1),
+                              minorGridLines: MinorGridLines(width: 0),
+                              majorTickLines: MajorTickLines(width: 0)),
+                          primaryXAxis: CategoryAxis(
+                              labelStyle: TextStyle(
+                                color: Color(0xff12283D),
+                              ),
+                              labelPlacement: LabelPlacement.onTicks,
+                              majorGridLines: MajorGridLines(width: 0),
+                              majorTickLines: MajorTickLines(width: 0),
+                              minorTickLines: MinorTickLines(width: 0)),
+
+                          legend: Legend(
+                            // Enable the legend
+                            textStyle: TextStyle(color:Color(0xff12283D),),
+                            position: LegendPosition.top,
+                            isVisible: true,
+                          ),
+                          tooltipBehavior: TooltipBehavior(enable: true),
+                          series: <ChartSeries>[
+                            ColumnSeries<chartdata, String>(
+
+                              dataLabelSettings: DataLabelSettings(
+                                  isVisible: true,
+                                  color: Colors.white,
+                                  textStyle: GoogleFonts.workSans(
+                                      color: Color(0xff12283D),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500)),
+                              borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(5),
+                                  topRight: Radius.circular(5)),
+                              dataSource: ChartData,
+                              xValueMapper: (chartdata ch, _) => ch.x,
+                              yValueMapper: (chartdata ch, _) => ch.y1,
+                              xAxisName: 'Month Name',
+                              name: 'Tickets', // Legend label
+                              color: Color(0xff12283D), // Change the color of the bars
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-               */
-              Card(
-                color: Color(0xff12283D),
+              SizedBox(
+                height: 10,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10.0),
                 child: Column(
                   children: <Widget>[
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        "Order History",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: Text("Tickets By Status",
+                          style: GoogleFonts.workSans(
+                              color: Color(0xff106db6),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w500)),
                     ),
                     Container(
                       child: SfCartesianChart(
-                        primaryXAxis: CategoryAxis(),
-                        legend: Legend( // Enable the legend
-                          isVisible: true,
+                        plotAreaBorderWidth: 0, // Remove plot area border
+                        plotAreaBorderColor: Colors.transparent,
+                        borderColor: Colors.transparent,
+                        primaryYAxis: NumericAxis(
+                            labelStyle: TextStyle(
+                              color: Color(0xff6C757D),
+                            ),
+                            majorTickLines: MajorTickLines(width: 0)),
+                        primaryXAxis: CategoryAxis(
+                            labelStyle: TextStyle(
+                              color: Color(0xff6C757D),
+                            ),
+                            labelPlacement: LabelPlacement.onTicks,
+                            majorGridLines: MajorGridLines(width: 0),
+                            majorTickLines: MajorTickLines(width: 0),
+                            minorTickLines: MinorTickLines(width: 0)),
+
+                        legend: Legend(
+                          // Enable the legend
+                          textStyle: TextStyle(color: Color(0xff106db6)),
                           position: LegendPosition.top,
+                          // isVisible: true,
                         ),
+
+                        tooltipBehavior: TooltipBehavior(enable: true),
                         series: <ChartSeries>[
-                          StackedColumn100Series<chartdata, String>(
-                            dataSource: ChartData,
+                          ColumnSeries<chartdata, String>(
+                            dataLabelSettings: DataLabelSettings(
+                                isVisible: true,
+                                color: Colors.grey.shade700,
+                                textStyle: GoogleFonts.workSans(
+                                    color: Color(0xffffffff),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500)),
+                            borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(5),
+                                topRight: Radius.circular(5)),
+                            dataSource: ChartData2,
                             xValueMapper: (chartdata ch, _) => ch.x,
                             yValueMapper: (chartdata ch, _) => ch.y1,
-                            name: 'PMG', // Legend label
-                            color: Color(0xfffd6929), // Change the color of the bars
-                          ),
-                          StackedColumn100Series<chartdata, String>(
-                            dataSource: ChartData,
-                            xValueMapper: (chartdata ch, _) => ch.x,
-                            yValueMapper: (chartdata ch, _) => ch.y2,
-                            name: 'HSD', // Legend label
-                            color: Color(0xff5bebd1), // Change the color of the bars
-                          ),
-                          StackedColumn100Series<chartdata, String>(
-                            dataSource: ChartData,
-                            xValueMapper: (chartdata ch, _) => ch.x,
-                            yValueMapper: (chartdata ch, _) => ch.y3,
-                            name: 'Total', // Legend label
-                            color: Color(0xff6c6074), // Change the color of the bars
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(10),
-                              topRight: Radius.circular(10),
-                            ),
+                            xAxisName: 'Month Name',
+                            name: 'Status', // Legend label
+                            color: Color(
+                                0xff106db6), // Change the color of the bars
                           ),
                         ],
                       ),
@@ -750,155 +976,140 @@ class _HomeScreenState extends State<Home> {
                   ],
                 ),
               ),
-
               SizedBox(
                 height: 10,
               ),
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                          child: Card(
-                            color: Color(0xffF0F0F0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              // Align content to the left
-                              children: <Widget>[
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'INDENT PRICE',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xff0e4967),
-                                      fontSize: 18.0,
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment
-                                        .spaceBetween,
-                                    children: <Widget>[
-                                      Text(
-                                        'PMG',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xff0e4967),),
-                                      ),
-                                      Text(
-                                        'HSD',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xff0e4967),),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 8.0, right: 8.0, bottom: 8.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment
-                                        .spaceBetween,
-                                    children: <Widget>[
-                                      Text('330.2/Ltr',
-                                        style: TextStyle(
-                                            color: Color(0xff0e4967)),),
-                                      Text('316.5/Ltr',
-                                        style: TextStyle(
-                                            color: Color(0xff0e4967)),),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Card(
+                  elevation: 20,
+                  child: Column(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text("Tickets By Priority",
+                            style: GoogleFonts.workSans(
+                                color: Color(0xff106db6),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w500)),
                       ),
-
+                      Container(
+                        child: SfCircularChart(
+                          borderColor: Colors.transparent,
+                          legend: Legend(
+                            textStyle: TextStyle(color: Color(0xff106db6)),
+                            position: LegendPosition.top,
+                            isVisible: true,
+                          ),
+                          tooltipBehavior: TooltipBehavior(enable: true),
+                          series: <CircularSeries>[
+                            PieSeries<chartdata, String>(
+                              dataSource: ChartData3,
+                              xValueMapper: (chartdata ch, _) => ch.x,
+                              yValueMapper: (chartdata ch, _) => ch.y1,
+                              dataLabelSettings: DataLabelSettings(
+                                  isVisible: true,
+                                  color: Colors.white,
+                                  textStyle: GoogleFonts.workSans(
+                                      color: Color(0xff106db6),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500)),
+                              name: 'Priority', // Legend label
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: Card(
-                            color: Color(0xffF0F0F0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              // Align content to the left
-                              children: <Widget>[
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'NOZZLE PRICE',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xff0e4967),
-                                      fontSize: 18.0,
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment
-                                        .spaceBetween,
-                                    children: <Widget>[
-                                      Text(
-                                        'PMG',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xff0e4967),),
-                                      ),
-                                      Text(
-                                        'HSD',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xff0e4967),),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 8.0, right: 8.0, bottom: 8.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment
-                                        .spaceBetween,
-                                    children: <Widget>[
-                                      Text('330.2/Ltr',
-                                        style: TextStyle(
-                                            color: Color(0xff0e4967)),),
-                                      Text('316.5/Ltr',
-                                        style: TextStyle(
-                                            color: Color(0xff0e4967)),),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                ),
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Column(
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text("Tickets By Impacts",
+                          style: GoogleFonts.workSans(
+                              color: Color(0xff106db6),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w500)),
+                    ),
+                    Container(
+                      child: SfCartesianChart(
+                        plotAreaBorderWidth: 0, // Remove plot area border
+                        plotAreaBorderColor: Colors.transparent,
+                        borderColor: Colors.transparent,
+                        primaryYAxis: NumericAxis(
+                            labelStyle: TextStyle(
+                              color: Color(0xff6C757D),
                             ),
-                          )
-                      ),
+                            majorTickLines: MajorTickLines(width: 0)),
+                        primaryXAxis: CategoryAxis(
+                            labelStyle: TextStyle(
+                              color: Color(0xff6C757D),
+                            ),
+                            labelPlacement: LabelPlacement.onTicks,
+                            majorGridLines: MajorGridLines(width: 0),
+                            majorTickLines: MajorTickLines(width: 0),
+                            minorTickLines: MinorTickLines(width: 0)),
 
-                    ],
-                  ),
-                ],
+                        legend: Legend(
+                          // Enable the legend
+                          textStyle: TextStyle(color: Color(0xff106db6)),
+                          position: LegendPosition.top,
+                          isVisible: true,
+                        ),
+                        tooltipBehavior: TooltipBehavior(enable: true),
+                        series: <ChartSeries>[
+
+                          BarSeries<chartdata, String>(
+                            dataLabelSettings: DataLabelSettings(
+                                isVisible: true,
+                                color: Colors.grey.shade700,
+                                textStyle: GoogleFonts.workSans(
+                                    color: Color(0xffffffff),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500)),
+                            borderRadius: BorderRadius.only(
+                                bottomRight: Radius.circular(5),
+                                topRight: Radius.circular(5)),
+                            dataSource: ChartData4,
+                            xValueMapper: (chartdata ch, _) => ch.x,
+                            yValueMapper: (chartdata ch, _) => ch.y1,
+                            xAxisName: 'Month Name',
+                            name: 'Impacts', // Legend label
+                            color: Color(
+                                0xff106db6), // Change the color of the bars
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 10,
               ),
               // practise material.
-
-
-
-
-
             ],
           ),
         ),
       ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor:  Color(0xff12283D),
+          onPressed: (){
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Chat()),
+            );
+          },
+          label: const Text('Chat'),
+          icon: const Icon(Icons.chat_bubble_outlined, color: Colors.white, size: 25),
+        ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: <BoxShadow>[
@@ -909,42 +1120,45 @@ class _HomeScreenState extends State<Home> {
           ],
         ),
         child: BottomNavigationBar(
-
             currentIndex: _selectedIndex,
             unselectedItemColor: Color(0xff8d8d8d),
-            unselectedLabelStyle: const TextStyle(
-                color: Color(0xff8d8d8d), fontSize: 14),
+            unselectedLabelStyle:
+                const TextStyle(color: Color(0xff8d8d8d), fontSize: 14),
             unselectedFontSize: 14,
             showUnselectedLabels: true,
             showSelectedLabels: true,
             selectedIconTheme: IconThemeData(
-              color: Color(0xff12283D),
-
+              color: Color(0xff106db6),
             ),
             type: BottomNavigationBarType.shifting,
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
-                  icon: Icon(FluentIcons.home_32_regular, size: 20,),
+                  icon: Icon(
+                    FluentIcons.home_32_regular,
+                    size: 20,
+                  ),
                   label: 'Home',
-                  backgroundColor: Colors.white
-              ),
+                  backgroundColor: Colors.white),
               BottomNavigationBarItem(
-                  icon: Icon(FluentIcons.weather_sunny_16_regular, size: 20,),
-                  label: 'Orders',
-                  backgroundColor: Colors.white
-              ),
+                  icon: Icon(
+                    FluentIcons.ticket_horizontal_24_regular,
+                    size: 20,
+                  ),
+                  label: 'Tickets',
+                  backgroundColor: Colors.white),
               BottomNavigationBarItem(
-                icon: Icon(FluentIcons.inprivate_account_16_regular, size: 20,),
+                icon: Icon(
+                  FluentIcons.inprivate_account_16_regular,
+                  size: 20,
+                ),
                 label: 'Profile',
                 backgroundColor: Colors.white,
               ),
             ],
-
-            selectedItemColor: Color(0xff12283D),
+            selectedItemColor: Color(0xff106db6),
             iconSize: 40,
             onTap: _onItemTapped,
-            elevation: 15
-        ),
+            elevation: 15),
       ),
     );
   }
@@ -968,11 +1182,8 @@ class _HomeScreenState extends State<Home> {
   }
 }
 
-class chartdata{
+class chartdata {
   final String x;
   final int y1;
-  final int y2;
-  final int y3;
-  chartdata(this.x,this.y1,this.y2,this.y3);
+  chartdata(this.x, this.y1);
 }
-

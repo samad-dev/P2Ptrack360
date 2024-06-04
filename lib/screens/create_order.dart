@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,25 +23,315 @@ class Create_Order extends StatefulWidget {
 }
 
 class _CreateOrderState extends State<Create_Order> {
-  int hsd = 350;
-  int hobc = 330;
-  int pmg = 332;
-  int hsdt = 0;
-  int hobct = 0;
-  int pmgt = 0;
-  List data = [];
-  String? _mySelection;
-  TextEditingController hsdController = new TextEditingController();
-  TextEditingController pmgController = new TextEditingController();
-  TextEditingController hobcController = new TextEditingController();
-  TextEditingController depotController = new TextEditingController();
-  TextEditingController tlController = new TextEditingController();
-  var _site = "Self";
+  int selectedOptionIndex = 0;
+  TextEditingController ticketNumberController = TextEditingController();
+  TextEditingController createdByController = TextEditingController();
+  TextEditingController taskAssignedController = TextEditingController();
+  TextEditingController reportedByController = TextEditingController();
+  TextEditingController problemController = TextEditingController();
+  TextEditingController complaintModeController = TextEditingController();
+  TextEditingController issueTypeController = TextEditingController();
+  TextEditingController resolvedByController = TextEditingController();
+  TextEditingController issueSubTypeController = TextEditingController();
+  TextEditingController resolvedDateController = TextEditingController();
+  TextEditingController statusController = TextEditingController();
+  TextEditingController priorityController = TextEditingController();
+  TextEditingController buStoreNameController = TextEditingController();
+  TextEditingController dueDateController = TextEditingController();
+  TextEditingController storeInfoController = TextEditingController();
+  TextEditingController impactController = TextEditingController();
+  // TextEditingController storeManagerController = TextEditingController();
+  // TextEditingController marketingManagerController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
+  List<dynamic> ticket_status = [];
+  List<dynamic> task_reported = [];
+  List<dynamic> issue_type = [];
+  List<dynamic> issue_sub_type = [];
+  List<dynamic> priority = [];
+  List<dynamic> BU_Name = [];
+  List<dynamic> Impact = [];
+
+  List<String> options = ['Individual', 'Group'];
+  String selectedOption = 'Individual';
+
+  late DateTime ticketDueDate;
+  late DateTime ticketResolvedDate;
+  late File image;
+
+  Future<List<dynamic>> fetchData() async {
+    print('hitting');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+
+    var request = http.Request(
+        'GET', Uri.parse('http://3.137.76.254/api/status/company/$companyId'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      var jsons = jsonDecode(json);
+      print(jsons.length);
+      ticket_status = jsons;
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<List<dynamic>> fetchUsers() async {
+    print('hitting');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+    String buId = prefs.getString("bu_id").toString();
+    String id = prefs.getString("id").toString();
+
+    var request = http.Request(
+        'GET', Uri.parse('http://3.137.76.254/api/users/company/$companyId'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      List<dynamic> jsons = jsonDecode(json);
+      print(jsons.length);
+      task_reported = jsons;
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<List<dynamic>> fetchType() async {
+    print('hitting');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+    String buId = prefs.getString("bu_id").toString();
+    String id = prefs.getString("id").toString();
+
+    var request = http.Request(
+        'GET', Uri.parse('http://3.137.76.254/api/companytype/$companyId'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      List<dynamic> jsons = jsonDecode(json);
+      print(jsons.length);
+      setState(() {
+        issue_type = jsons;
+      });
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<List<dynamic>> fetchSubType(id) async {
+    var request = http.Request(
+        'GET', Uri.parse('http://3.137.76.254/api/types/parent/$id'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      List<dynamic> jsons = jsonDecode(json);
+      print(jsons.length);
+      setState(() {
+        issue_sub_type = jsons;
+      });
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<List<dynamic>> fetchPriority() async {
+    print('hitting');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+    String buId = prefs.getString("bu_id").toString();
+    String id = prefs.getString("id").toString();
+
+    var request = http.Request('GET',
+        Uri.parse('http://3.137.76.254/api/priority/company/$companyId'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      List<dynamic> jsons = jsonDecode(json);
+      print(jsons.length);
+      priority = jsons;
+      /*for(int i=0;i<jsons.length;i++)
+      {
+        // print(jsons[i]['id']);
+        setState(() {
+          priority.add(jsons[i]['title']);
+        });
+      }*/
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<List<dynamic>> fetchBusinessUnits() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+    var request = http.Request('GET',
+        Uri.parse('http://3.137.76.254/api/business_units/$companyId'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      List<dynamic> jsons = jsonDecode(json);
+      print(jsons.length);
+      BU_Name = jsons;
+      /*for(int i=0;i<jsons.length;i++)
+      {
+        // print(jsons[i]['id']);
+        setState(() {
+          priority.add(jsons[i]['title']);
+        });
+      }*/
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<List<dynamic>> fetchImpact() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+    var request = http.Request('GET',
+        Uri.parse('http://3.137.76.254/api/impacts/$companyId'));
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      var json = await response.stream.bytesToString();
+      print(json);
+      List<dynamic> jsons = jsonDecode(json);
+      print(jsons.length);
+      Impact = jsons;
+      print("Here are Imapact $Impact");
+      /*for(int i=0;i<jsons.length;i++)
+      {
+        // print(jsons[i]['id']);
+        setState(() {
+          priority.add(jsons[i]['title']);
+        });
+      }*/
+      return jsons;
+    } else {
+      return [];
+    }
+  }
+  Future<void> _selectDueDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (picked != null && picked != dueDateController.text) {
+      setState(() {
+        dueDateController.text = picked.toLocal().toString().split(' ')[0];
+      });
+    }
+  }
+  Future<void> _selectResolvedDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (picked != null && picked != resolvedDateController.text) {
+      setState(() {
+        resolvedDateController.text = picked.toLocal().toString().split(' ')[0];
+      });
+    }
+  }
+  Future<void> _getImage(BuildContext context) async {
+    final picker = ImagePicker();
+    final pickedSource = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Image Source'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(ImageSource.gallery),
+              child: const Icon(Icons.collections),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(ImageSource.camera),
+              child: const Icon(Icons.camera_alt),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (pickedSource != null) {
+      final pickedImage = await picker.getImage(
+        source: pickedSource,
+      );
+
+      if (pickedImage != null) {
+        setState(() {
+          image = File(pickedImage.path);
+        });
+      }
+    }
+  }
+
+  Future<void> CreateTickets() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String companyId = prefs.getString("company_id").toString();
+    String id = prefs.getString("id").toString();
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('http://3.137.76.254/api/tickets'));
+      request.fields.addAll({
+        'title': ticketNumberController.text,
+        'description': descriptionController.text,
+        'completed_date': resolvedDateController.text,
+        'due_date': dueDateController.text,
+        'company_id': companyId,
+        'completed_by': resolvedByController.text,
+        'business_unit_id': buStoreNameController.text,
+        'vendor_id': '7',
+        'vendor_type_id': '8',
+        'reported_by':  reportedByController.text,
+        'assigned_to': taskAssignedController.text,
+        'mode_of_complaint': complaintModeController.text,
+        'sub_type_id': issueSubTypeController.text,
+        'priority_id': priorityController.text,
+        'impact_id': impactController.text,
+        'status_id': statusController.text,
+        'store_contact': storeInfoController.text,
+        'created_by': id,
+        'email_status': '18',
+        'assigned_type': selectedOption,
+        'customer_id': '1'
+      });
+      request.files.add(await http.MultipartFile.fromPath('profile', image.path));
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        print(await response.stream.bytesToString());
+        print("work Done part 1");
+      } else {
+        print('Request failed with status: ${response.statusCode}, ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error occurred: $e');
+    }
+  }
 
   @override
   void initState() {
+    setState(() {
+      fetchData();
+      fetchUsers();
+      fetchType();
+      fetchPriority();
+      fetchBusinessUnits();
+      fetchImpact();
+    });
     super.initState();
-    this.getDepot();
   }
 
   int _selectedIndex = 1;
@@ -62,7 +354,7 @@ class _CreateOrderState extends State<Create_Order> {
           color: Colors.black, //change your color here
         ),
         backgroundColor: Colors.white,
-        elevation: 10,
+        elevation: 1,
         title: Text(
           'Create Order',
           style: GoogleFonts.montserrat(
@@ -73,556 +365,356 @@ class _CreateOrderState extends State<Create_Order> {
         ),
       ),
       body: SingleChildScrollView(
-          child: Container(
-        padding: EdgeInsets.all(8),
-        child: Column(
-          children: [
-            Card(
-              color: Color(0xffF0F0F0),
-              elevation: 15,
-              child: Container(
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      //CircleAvatar
-                      const SizedBox(
-                        height: 10,
-                      ), //SizedBox
-                      Text(
-                        'Account Balance',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Color(0xff000000),
-                          fontWeight: FontWeight.w300,
-                          fontStyle: FontStyle.normal,
-                        ),
-                      ), //Text
-                      const SizedBox(
-                        height: 30,
-                      ),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                              backgroundColor: Color(0xff12283D),
-                              radius: 15,
-                              child: Icon(
-                                FontAwesomeIcons.cableCar,
-                                color: Colors.white,
-                                size: 15,
-                              ) //Text
-                              ),
-                          SizedBox(
-                            width: 5,
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '3,75,000 Rs.',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: Color(0xff000000),
-                                  fontWeight: FontWeight.w600,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                              Text(
-                                'Updated On : ${formattedDate}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 10,
-                                  color: Color(0xff8A8A8A),
-                                  fontWeight: FontWeight.w300,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                    ],
-                  ), //Column
-                ),
-              ), //SizedBox,
-            ),
-            SizedBox(
-              height: 20,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: SizedBox(
-                    width: 150,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
                     child: TextFormField(
-                      onFieldSubmitted: (value) {
-                        print(value);
-                        setState(() {
-                          hsdt = int.parse(value) * 350;
-                        });
-                      },
-                      onTapOutside: (value) {
-                        print(value);
-                      },
-                      controller: hsdController,
-                      keyboardType: TextInputType.number,
-                      style: GoogleFonts.poppins(
-                        color: Color(0xffa8a8a8),
-                        fontWeight: FontWeight.w300,
-                        fontSize: 16,
-                        fontStyle: FontStyle.normal,
-                      ),
-                      decoration: InputDecoration(
-                        hintStyle: GoogleFonts.poppins(
-                          color: Color(0xffa8a8a8),
-                          fontWeight: FontWeight.w300,
-                          fontSize: 16,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        labelStyle: GoogleFonts.poppins(
-                          color: Color(0xffa8a8a8),
-                          fontWeight: FontWeight.w300,
-                          fontSize: 16,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        filled: true,
-                        fillColor: Color(0xffF1F4FF),
-                        hintText: 'Quantity for HSD',
-                        focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(width: 2, color: Color(0xff3b5fe0)),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        border: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(width: 2, color: Color(0xffF1F4FF)),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        labelText: 'HSD',
-                      ),
+                      controller: ticketNumberController,
+                      enabled: false,
+                      decoration: InputDecoration(labelText: 'Ticket#'),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "x",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    hsd.toString(),
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "=",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    hsdt.toString(),
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(
-              height: 13,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: SizedBox(
-                    width: 150,
+                  SizedBox(width: 16),
+                  Expanded(
                     child: TextFormField(
-                      onFieldSubmitted: (value) {
-                        print(value);
-                        setState(() {
-                          hobct = int.parse(value) * 330;
-                        });
-                      },
-                      controller: hobcController,
-                      keyboardType: TextInputType.number,
-                      style: GoogleFonts.poppins(
-                        color: Color(0xffa8a8a8),
-                        fontWeight: FontWeight.w300,
-                        fontSize: 16,
-                        fontStyle: FontStyle.normal,
-                      ),
-                      decoration: InputDecoration(
-                        hintStyle: GoogleFonts.poppins(
-                          color: Color(0xffa8a8a8),
-                          fontWeight: FontWeight.w300,
-                          fontSize: 16,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        labelStyle: GoogleFonts.poppins(
-                          color: Color(0xffa8a8a8),
-                          fontWeight: FontWeight.w300,
-                          fontSize: 16,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        filled: true,
-                        fillColor: Color(0xffF1F4FF),
-                        hintText: 'Quantity for HOBC',
-                        focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(width: 2, color: Color(0xff3b5fe0)),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        border: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(width: 2, color: Color(0xffF1F4FF)),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        labelText: 'HOBC',
-                      ),
+                      enabled: false,
+                      controller: createdByController,
+                      decoration:
+                      InputDecoration(labelText: 'Ticket Created By'),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "x",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    hobc.toString(),
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "=",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    hobct.toString(),
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(
-              height: 13,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: SizedBox(
-                    width: 150,
-                    child: TextFormField(
-                      onFieldSubmitted: (value) {
-                        print(value);
-                        setState(() {
-                          pmgt = int.parse(value) * 332;
-                        });
-                      },
-                      controller: pmgController,
-                      keyboardType: TextInputType.number,
-                      style: GoogleFonts.poppins(
-                        color: Color(0xffa8a8a8),
-                        fontWeight: FontWeight.w300,
-                        fontSize: 16,
-                        fontStyle: FontStyle.normal,
-                      ),
-                      decoration: InputDecoration(
-                        hintStyle: GoogleFonts.poppins(
-                          color: Color(0xffa8a8a8),
-                          fontWeight: FontWeight.w300,
-                          fontSize: 16,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        labelStyle: GoogleFonts.poppins(
-                          color: Color(0xffa8a8a8),
-                          fontWeight: FontWeight.w300,
-                          fontSize: 16,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        filled: true,
-                        fillColor: Color(0xffF1F4FF),
-                        hintText: 'Quantity for PMG',
-                        focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(width: 2, color: Color(0xff3b5fe0)),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        border: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(width: 2, color: Color(0xffF1F4FF)),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        labelText: 'PMG',
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "x",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    pmg.toString(),
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "=",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    pmgt.toString(),
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15.0),
-                border: Border.all(
-                    color: Color(0xff12283d),
-                    style: BorderStyle.solid,
-                    width: 0.80),
+                ],
               ),
-              child: DropdownButton(
-                underline: Container(), //remove underline
-                isExpanded: true,
-                icon: Padding( //Icon at tail, arrow bottom is default icon
-                    padding: EdgeInsets.only(left:20),
-                    child:Icon(Icons.arrow_circle_down_sharp)
-                ),
-                iconEnabledColor: Color(0xff12283d),
-                style: const TextStyle(
-                    color: Colors.black54, fontSize: 13),
-                items: data.map((item) {
-                  return DropdownMenuItem(
-                    child: new Text(item['consignee_name'],style: GoogleFonts.poppins(
-                      color: Color(0xffa8a8a8),
-                      fontWeight: FontWeight.w300,
-                      fontSize: 16,
-                      fontStyle: FontStyle.normal,
-                    ),),
-                    value: item['id'].toString(),
-                  );
-                }).toList(),
-                onChanged: (String? newVal) {
+              SizedBox(height: 16),
+              // Second Row - Toggle Button
+              ToggleButtons(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('Individual'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('Group'),
+                  ),
+                ],
+                isSelected: [
+                  selectedOption == 'Individual',
+                  selectedOption == 'Group'
+                ],
+                onPressed: (index) {
                   setState(() {
-                    _mySelection = newVal!;
-                    // print(_mySelection);
+                    selectedOption = options[index];
+                    // Now selectedOption holds the text of the selected option
+                    // You can add your logic for individual and group based on the value of selectedOption
                   });
                 },
-                value: _mySelection,
-                hint: Text("Select Depot",style: GoogleFonts.poppins(
-                  color: Color(0xff000000),
-                  fontWeight: FontWeight.w300,
-                  fontSize: 16,
-                  fontStyle: FontStyle.normal,
-                ),),
               ),
-            ),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                Expanded(
-                  child: ListTile(
-                    title:  Text('Self',style:GoogleFonts.montserrat(
-                      fontSize: 14,
-                      color: Color(0xff12283D),
-                      fontWeight: FontWeight.w500,
-                      fontStyle: FontStyle.italic,
-                    ),),
-
-                    leading: Radio(
-                      fillColor: MaterialStateProperty.all(Color(0xff12283D)),
-                      overlayColor:  MaterialStateProperty.all(Color(0xff12283D)),
-                      value: "Self",
-                      groupValue: _site,
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: task_reported
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text("${option['first_name']}-${option['last_name']}"),
+                        );
+                      }).toList(),
                       onChanged: (value) {
-                        setState(() {
-                          _site = value!;
-                        });
+                        // TODO: Handle dropdown value change
+                        taskAssignedController.text = value!;
                       },
+                      decoration: InputDecoration(labelText: 'Task Assigned'),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: ListTile(
-                    title: Text('GC / Coco',style:GoogleFonts.montserrat(
-                      fontSize: 14,
-                      color: Color(0xff12283D),
-                      fontWeight: FontWeight.w500,
-                      fontStyle: FontStyle.italic,
-                    ),),
-                    leading: Radio(
-                      fillColor: MaterialStateProperty.all(Color(0xff12283D)),
-                      overlayColor:  MaterialStateProperty.all(Color(0xff12283D)),
-                      value: "GC / Coco",
-                      groupValue: _site,
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: task_reported
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text("${option['first_name']}-${option['last_name']}"),
+                        );
+                      }).toList(),
                       onChanged: (value) {
-                        setState(() {
-                          _site = value!;
-                        });
+                        // TODO: Handle dropdown value change
+                        reportedByController.text = value!;
                       },
+                      decoration:
+                      InputDecoration(labelText: 'Ticket Reported By'),
                     ),
                   ),
-                ),
-
-              ],
-            ),
-            if (_site == "Self")
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: problemController,
+                      decoration: InputDecoration(labelText: 'Problem'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: complaintModeController,
+                      decoration:
+                      InputDecoration(labelText: 'Mode of Complaint'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: issue_type
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text(option['title']),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                        issueTypeController.text = value!;
+                        print(value);
+                        fetchSubType(value);
+                      },
+                      decoration: InputDecoration(labelText: 'Issue Type'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: task_reported
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text("${option['first_name']}-${option['last_name']}"),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                        resolvedByController.text = value!;
+                      },
+                      decoration:
+                      InputDecoration(labelText: 'Ticket Resolved By'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: issue_sub_type
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text(option['title']),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                        issueSubTypeController.text = value!;
+                      },
+                      decoration: InputDecoration(labelText: 'Issue Sub Type'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _selectResolvedDate(context),
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: resolvedDateController,
+                          decoration: InputDecoration(
+                              labelText: 'Ticket Resolved Date'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: ticket_status
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text(option['title']),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                        statusController.text=value!;
+                      },
+                      decoration: InputDecoration(labelText: 'Status'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: priority
+                          .map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text(option['title']),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        print(value);
+                        // TODO: Handle dropdown value change
+                        priorityController.text=value!;
+                      },
+                      decoration: InputDecoration(labelText: 'Priority'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true, // Ensures the dropdown button expands to fit the available space
+                      isDense: false, // Allows text wrapping
+                      items: BU_Name.map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text("${option['name']}"),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                        buStoreNameController.text = value!;
+                      },
+                      decoration: InputDecoration(labelText: 'BU/Store Name'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _selectDueDate(context),
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: dueDateController,
+                          decoration:
+                          InputDecoration(labelText: 'Ticket Due Date'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: storeInfoController,
+                      decoration: InputDecoration(labelText: 'Store Info'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: Impact.map<DropdownMenuItem<String>>((dynamic option) {
+                        return DropdownMenuItem<String>(
+                          value: option['id'],
+                          child: Text("${option["title"]}"),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                        impactController.text = value!;
+                      },
+                      decoration: InputDecoration(labelText: 'Impact'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              /*
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: ['Manager 1', 'Manager 2', 'Manager 3']
+                          .map((manager) => DropdownMenuItem<String>(
+                        value: manager,
+                        child: Text(manager),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                      },
+                      decoration: InputDecoration(labelText: 'Store Manager'),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      items: ['Manager 1', 'Manager 2', 'Manager 3']
+                          .map((manager) => DropdownMenuItem<String>(
+                        value: manager,
+                        child: Text(manager),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        // TODO: Handle dropdown value change
+                      },
+                      decoration:
+                      InputDecoration(labelText: 'Marketing Manager'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              */
               TextFormField(
-                controller: tlController,
-                keyboardType: TextInputType.text,
-                style: GoogleFonts.poppins(
-                  color: Color(0xffa8a8a8),
-                  fontWeight: FontWeight.w300,
-                  fontSize: 16,
-                  fontStyle: FontStyle.normal,
-                ),
-                decoration: InputDecoration(
-                  hintStyle: GoogleFonts.poppins(
-                    color: Color(0xffa8a8a8),
-                    fontWeight: FontWeight.w300,
-                    fontSize: 16,
-                    fontStyle: FontStyle.normal,
-                  ),
-                  labelStyle: GoogleFonts.poppins(
-                    color: Color(0xffa8a8a8),
-                    fontWeight: FontWeight.w300,
-                    fontSize: 16,
-                    fontStyle: FontStyle.normal,
-                  ),
-                  filled: true,
-                  fillColor: Color(0xffF1F4FF),
-                  hintText: 'TL #',
-                  focusedBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(width: 2, color: Color(0xff3b5fe0)),
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
-                  border: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(width: 2, color: Color(0xffF1F4FF)),
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
-                  labelText: 'Enter TL #',
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+
+                onPressed: () => _getImage(context),
+                child: Text('Upload Image'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xff12283D),
                 ),
               ),
-            Padding(
-              padding: EdgeInsets.only(top: 20),
-              child: MaterialButton(
+              SizedBox(height: 16),
+              ElevatedButton(
                 onPressed: () {
-                  var amount = hsdt + pmgt + hobct;
+                  CreateTickets();
                 },
-                child: Text(
-                  'Create Order',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontFamily: 'SFUIDisplay',
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
+                child: Text('Submit'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xff12283D),
                 ),
-                color: Color(0xff12283d),
-                elevation: 0,
-                minWidth: 350,
-                height: 60,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50)),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      )),
+      ),
     );
-  }
-
-  Future<String> getDepot() async {
-    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    var user_id = await sharedPreferences.getString("userId");
-    var res = await http.get(Uri.parse(
-        "http://151.106.17.246:8080/hascol/api/dealer_depot.php?accesskey=12345&user_id=3"));
-    var resBody = json.decode(res.body);
-
-    setState(() {
-      data = resBody;
-      print(data.length);
-    });
-
-    // print(data[0]["id"]);
-    // print("Sapcode " + code.toString());
-
-    return Future.value("Data download successfully");
   }
 }

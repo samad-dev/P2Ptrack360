@@ -1,13 +1,12 @@
-import 'package:fl_chart/fl_chart.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hascol_dealer/screens/create_order.dart';
 import 'package:hascol_dealer/screens/home.dart';
-import 'package:hascol_dealer/screens/login.dart';
 import 'package:hascol_dealer/screens/profile.dart';
+import 'package:hascol_dealer/screens/ticket_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
@@ -20,10 +19,99 @@ class Orders extends StatefulWidget {
 }
 
 class _OrdersState extends State<Orders> {
+  List<dynamic> allTickets = [];
+  List<dynamic> filteredTickets = [];
+  List<String> statusOptions = [];
+  List<String> impactOptions = [];
+  List<String> priorityOptions = [];
+  List<String> buOptions = [];
+  List<String> reportedByOptions = [];
+
+  String? selectedStatus;
+  String? selectedImpact;
+  String? selectedPriority;
+  String? selectedBU;
+  String? selectedReportedBy;
+
+  List<String> _getDistinctValues(List<dynamic> data, String key) {
+    return data.map((e) => e[key]).toSet().toList().cast<String>();
+  }
   @override
   void initState() {
     super.initState();
+    getData().then((data) {
+      setState(() {
+        allTickets = data;
+        filteredTickets = data;
+        statusOptions = _getDistinctValues(data, 'status_title');
+        impactOptions = _getDistinctValues(data, 'impact_title');
+        priorityOptions = _getDistinctValues(data, 'priority_title');
+        buOptions = _getDistinctValues(data, 'bu_name');
+        reportedByOptions = _getDistinctValues(data, 'reported_by_name');
+      });
+    });
+
   }
+
+  void filterTicketsbyq(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        filteredTickets = allTickets;
+      });
+    } else {
+      setState(() {
+        filteredTickets = allTickets.where((ticket) {
+          return ticket['title'].toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      });
+    }
+  }
+  Future<List<dynamic>> getData() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String company_id = prefs.getString("company_id") ?? "";
+      String bu_id = prefs.getString("bu_id") ?? "";
+      String id = prefs.getString("id") ?? "";
+
+      var request = http.Request(
+          'GET',
+          Uri.parse(
+              'http://3.137.76.254/api/dashboard/index/$company_id/Manager/$bu_id/$id'));
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(await response.stream.bytesToString());
+
+        return data;
+      } else {
+        print('Failed to fetch data: ${response.reasonPhrase}');
+        // You can throw an exception here or return an empty list based on your requirement
+        throw Exception('Failed to fetch data: ${response.reasonPhrase}');
+        // return []; // Return an empty list if you don't want to throw an exception
+      }
+    } catch (e) {
+      print('Error: $e');
+      // You can throw an exception here or return an empty list based on your requirement
+      throw Exception('Error: $e');
+      // return []; // Return an empty list if you don't want to throw an exception
+    }
+  }
+
+  void filterTickets() {
+    setState(() {
+      filteredTickets = allTickets.where((ticket) {
+        final statusMatch = selectedStatus == null || ticket['status_title'] == selectedStatus;
+        final impactMatch = selectedImpact == null || ticket['impact_title'] == selectedImpact;
+        final priorityMatch = selectedPriority == null || ticket['priority_title'] == selectedPriority;
+        final buMatch = selectedBU == null || ticket['bu_name'] == selectedBU;
+        final reportedByMatch = selectedReportedBy == null || ticket['reported_by_name'] == selectedReportedBy;
+
+        return statusMatch && impactMatch && priorityMatch && buMatch && reportedByMatch;
+      }).toList();
+    });
+  }
+
+
 
   int _selectedIndex = 1;
   @override
@@ -36,9 +124,10 @@ class _OrdersState extends State<Orders> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: Colors.white,
-          elevation: 10,
+          elevation: 1,
+
           title: Text(
-            'Orders',
+            'Tickets',
             style: GoogleFonts.montserrat(
                 fontWeight: FontWeight.w700,
                 fontStyle: FontStyle.normal,
@@ -46,6 +135,19 @@ class _OrdersState extends State<Orders> {
                 fontSize: 16),
           ),
           actions: [
+            IconButton(
+              icon: Icon(FluentIcons.filter_dismiss_16_filled,color: Color(0xff12283D),),
+              onPressed: () {
+                setState(() {
+                  selectedStatus = null;
+                  selectedImpact = null;
+                  selectedPriority = null;
+                  selectedBU = null;
+                  selectedReportedBy = null;
+                  filterTickets();
+                });
+              },
+            ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton.icon(
@@ -64,9 +166,9 @@ class _OrdersState extends State<Orders> {
                   primary: Color(0xff3B8D5A), // Background color
                 ),
                 label: Text(
-                  'Create Order',
+                  'Create Tickets',
                   style: GoogleFonts.montserrat(
-                    fontSize: 10,
+                    fontSize: 13,
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     fontStyle: FontStyle.normal,
@@ -78,251 +180,396 @@ class _OrdersState extends State<Orders> {
         ),
         body: SingleChildScrollView(
             child: Container(
-          padding: EdgeInsets.all(18),
-          child: Column(
-            children: [
-              Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                elevation: 5,
-                child: TextField(
-                  decoration: InputDecoration(
-                      prefixIcon: Icon(FluentIcons.search_12_regular,
-                          color: Color(0xff8d8d8d)),
-                      hintText: 'Search...',
-                      hintStyle: GoogleFonts.montserrat(
-                          fontWeight: FontWeight.w300,
-                          fontStyle: FontStyle.normal,
-                          color: Color(0xff12283D),
-                          fontSize: 16),
-                      border: InputBorder.none),
-                ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Card(
-                elevation: 10,
-                color: Color(0xffF0F0F0),
-                child: Container(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(18),
+              child: Column(
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'PMG',
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.w600,
-                                  fontStyle: FontStyle.normal,
-                                  color: Color(0xff12283D),
-                                  fontSize: 16),
-                            ),
-                            Text(
-                              'Quantity: 23000 Ltr.',
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.w200,
-                                  fontStyle: FontStyle.normal,
-                                  color: Color(0xff737373),
-                                  fontSize: 12),
-                            ),
-                            Text(
-                              '54,000 Rs.',
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.w600,
-                                  fontStyle: FontStyle.normal,
-                                  color: Color(0xff3B8D5A),
-                                  fontSize: 12),
+                        DropdownButton<String>(
+                          hint: Text('Select Status'),
+                          value: selectedStatus,
+                          items: statusOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedStatus = value;
+                              filterTickets();
+                            });
+                          },
+                        ),
+                        DropdownButton<String>(
+                          hint: Text('Select Impact'),
+                          value: selectedImpact,
+                          items: impactOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedImpact = value;
+                              filterTickets();
+                            });
+                          },
+                        ),
+                        DropdownButton<String>(
+                          hint: Text('Select Priority'),
+                          value: selectedPriority,
+                          items: priorityOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedPriority = value;
+                              filterTickets();
+                            });
+                          },
+                        ),
+                        DropdownButton<String>(
+                          hint: Text('Select Business Unit'),
+                          value: selectedBU,
+
+                          items: buOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedBU = value;
+                              filterTickets();
+                            });
+                          },
+                        ),
+                        DropdownButton<String>(
+                          hint: Text('Reported By'),
+                          value: selectedReportedBy,
+                          items: reportedByOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedReportedBy = value;
+                              filterTickets();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Card(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10))),
+                    elevation: 5,
+                    child: TextField(
+                      onChanged: (query) {
+                        filterTicketsbyq(query);
+                      },
+                      decoration: InputDecoration(
+                          prefixIcon: Icon(FluentIcons.search_12_regular,
+                              color: Color(0xff8d8d8d)),
+                          hintText: 'Search Tickets',
+                          hintStyle: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.w300,
+                              fontStyle: FontStyle.normal,
+                              color: Color(0xff12283D),
+                              fontSize: 16),
+                          border: InputBorder.none),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  FutureBuilder(
+                    future: getData(),
+                    builder: (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      } else if (snapshot.hasError) {
+                        return const Center(
+                          child: Text('Error fetching data'),
+                        );
+                      } else if (snapshot.hasData) {
+                        return ListView.builder(
+                          physics: NeverScrollableScrollPhysics(),
+                          scrollDirection: Axis.vertical,
+                          shrinkWrap: true,
+                          itemCount: filteredTickets.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            var Ticket = filteredTickets[index];
+                            return GestureDetector(
+                              onTap: (){
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => Tickets(Ticket)),
+                                );
+                              },
+                              child: Card(
+                                elevation: 10,
+                                color: Color(0xffF0F0F0),
+                                child: Container(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    'Ticket #: 00${Ticket['company_id']}-00${Ticket['business_unit_id']}-${Ticket['id']}',
+                                                    style: GoogleFonts.montserrat(
+                                                        fontWeight: FontWeight.w600,
+                                                        fontStyle: FontStyle.normal,
+                                                        color: Color(0xff12283D),
+                                                        fontSize: 16),
+                                                  ),
+                                                  Card(
+                                                    color: Color(0xffFFF3D4),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(3.0),
+                                                      child: Text(
+                                                        Ticket['status_title'],
+                                                        style: GoogleFonts.poppins(
+                                                            fontWeight: FontWeight.w500,
+                                                            fontStyle: FontStyle.normal,
+                                                            color: Color(0xffE7AD18),
+                                                            fontSize: 12),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    Ticket['title'],
+                                                    style: GoogleFonts.montserrat(
+                                                        fontWeight: FontWeight.w200,
+                                                        fontStyle: FontStyle.normal,
+                                                        color: Color(0xff737373),
+                                                        fontSize: 18),
+                                                  ),
+                                                  Text(
+                                                    'Due Date: ${Ticket['due_date']}',
+                                                    style: GoogleFonts.montserrat(
+                                                        fontWeight: FontWeight.w300,
+                                                        fontStyle: FontStyle.normal,
+                                                        color: Color(0xff9b9b9b),
+                                                        fontSize: 12),
+                                                  ),
+                                                ],
+                                              ),
+                                              Text(
+                                                'Reported By: ${Ticket['reported_by_name']}',
+                                                style: GoogleFonts.montserrat(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontStyle: FontStyle.normal,
+                                                    color: Color(0xff3B8D5A),
+                                                    fontSize: 12),
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 4.0,horizontal: 4),
+                                                child: Divider(),
+                                              ),
+                                              Text(
+                                                Ticket['created_at'],
+                                                style: GoogleFonts.montserrat(
+                                                    fontWeight: FontWeight.w300,
+                                                    fontStyle: FontStyle.normal,
+                                                    color: Color(0xff9b9b9b),
+                                                    fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+
+
+                                            /*SizedBox(
+                            height: 3,
                             ),
                             SizedBox(
-                              height: 32,
-                            ),
-                            Text(
-                              '9/20/2023  5:00 PM',
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.w300,
+                            width: 90,
+                            height: 20,
+                            child: ElevatedButton(
+                              child: Text(
+                                'Shortage',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w100,
+                                  fontSize: 11,
                                   fontStyle: FontStyle.normal,
-                                  color: Color(0xff9b9b9b),
-                                  fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Card(
-                              color: Color(0xffFFF3D4),
-                              child: Padding(
-                                padding: const EdgeInsets.all(3.0),
-                                child: Text(
-                                  'In Progress',
-                                  style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FontStyle.normal,
-                                      color: Color(0xffE7AD18),
-                                      fontSize: 12),
                                 ),
                               ),
-                            ),
-                            Text(
-                              'Waiting For Approval',
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.w300,
-                                  fontStyle: FontStyle.normal,
-                                  color: Color(0xff9b9b9b),
-                                  fontSize: 12),
-                            ),
-                            SizedBox(
-                              height: 3,
-                            ),
-                            SizedBox(
-                              width: 90,
-                              height: 20,
-                              child: ElevatedButton(
-                                child: Text(
-                                  'Shortage',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w100,
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.normal,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                    primary: Color(0xff12283D),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18.0),
-                                    )),
-                                onPressed: () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    builder: (context) {
-                                      return Container(
-                                        color: Colors.white54,
-                                        child: Column(
-                                          children: [
-                                            SizedBox(height: 30,),
-                                            Icon(
-                                              FontAwesomeIcons.cameraRetro,
-                                              color: Color(0xff12283d),
-                                              size: 160,
+                              style: ElevatedButton.styleFrom(
+                                  primary: Color(0xff12283D),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18.0),
+                                  )),
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return Container(
+                                      color: Colors.white54,
+                                      child: Column(
+                                        children: [
+                                          SizedBox(height: 30,),
+                                          Icon(
+                                            FontAwesomeIcons.cameraRetro,
+                                            color: Color(0xff12283d),
+                                            size: 160,
+                                          ),
+                                          Text(
+                                            'Click Here To Upload Photos',
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 16,
+                                              fontStyle: FontStyle.normal,
                                             ),
-                                            Text(
-                                              'Click Here To Upload Photos',
-                                              style: GoogleFonts.poppins(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 16,
-                                                fontStyle: FontStyle.normal,
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding: const EdgeInsets.all(18.0),
-                                              child: SizedBox(
-                                                height: 50,
-                                                child: TextFormField(
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(18.0),
+                                            child: SizedBox(
+                                              height: 50,
+                                              child: TextFormField(
 
-                                                  onFieldSubmitted: (value) {
-                                                    print(value);
+                                                onFieldSubmitted: (value) {
+                                                  print(value);
 
-                                                  },
-                                                  keyboardType: TextInputType.number,
-                                                  style: GoogleFonts.poppins(
+                                                },
+                                                keyboardType: TextInputType.number,
+                                                style: GoogleFonts.poppins(
+                                                  color: Color(0xffa8a8a8),
+                                                  fontWeight: FontWeight.w300,
+                                                  fontSize: 16,
+                                                  fontStyle: FontStyle.normal,
+                                                ),
+                                                decoration: InputDecoration(
+                                                  hintStyle: GoogleFonts.poppins(
                                                     color: Color(0xffa8a8a8),
                                                     fontWeight: FontWeight.w300,
                                                     fontSize: 16,
                                                     fontStyle: FontStyle.normal,
                                                   ),
-                                                  decoration: InputDecoration(
-                                                    hintStyle: GoogleFonts.poppins(
-                                                      color: Color(0xffa8a8a8),
-                                                      fontWeight: FontWeight.w300,
-                                                      fontSize: 16,
-                                                      fontStyle: FontStyle.normal,
-                                                    ),
-                                                    labelStyle: GoogleFonts.poppins(
-                                                      color: Color(0xffa8a8a8),
-                                                      fontWeight: FontWeight.w300,
-                                                      fontSize: 16,
-                                                      fontStyle: FontStyle.normal,
-                                                    ),
-                                                    filled: true,
-                                                    fillColor: Color(0xffF1F4FF),
-                                                    hintText: 'Recieved',
-                                                    focusedBorder: OutlineInputBorder(
-                                                        borderSide:
-                                                        BorderSide(width: 2, color: Color(0xff3b5fe0)),
-                                                        borderRadius:
-                                                        BorderRadius.all(Radius.circular(10))),
-                                                    border: OutlineInputBorder(
-                                                        borderSide:
-                                                        BorderSide(width: 2, color: Color(0xffF1F4FF)),
-                                                        borderRadius:
-                                                        BorderRadius.all(Radius.circular(10))),
-                                                    labelText: 'Recieved Qty',
+                                                  labelStyle: GoogleFonts.poppins(
+                                                    color: Color(0xffa8a8a8),
+                                                    fontWeight: FontWeight.w300,
+                                                    fontSize: 16,
+                                                    fontStyle: FontStyle.normal,
                                                   ),
+                                                  filled: true,
+                                                  fillColor: Color(0xffF1F4FF),
+                                                  hintText: 'Recieved',
+                                                  focusedBorder: OutlineInputBorder(
+                                                      borderSide:
+                                                      BorderSide(width: 2, color: Color(0xff3b5fe0)),
+                                                      borderRadius:
+                                                      BorderRadius.all(Radius.circular(10))),
+                                                  border: OutlineInputBorder(
+                                                      borderSide:
+                                                      BorderSide(width: 2, color: Color(0xffF1F4FF)),
+                                                      borderRadius:
+                                                      BorderRadius.all(Radius.circular(10))),
+                                                  labelText: 'Recieved Qty',
                                                 ),
                                               ),
                                             ),
-                                            Padding(
-                                              padding: EdgeInsets.only(top: 20),
-                                              child: MaterialButton(
-                                                onPressed: () {
+                                          ),
+                                          Padding(
+                                            padding: EdgeInsets.only(top: 20),
+                                            child: MaterialButton(
+                                              onPressed: () {
 
-                                                },
-                                                child: Text(
-                                                  'Add Shortage',
-                                                  style: TextStyle(
-                                                      fontSize: 15,
-                                                      fontFamily: 'SFUIDisplay',
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.white),
-                                                ),
-                                                color: Color(0xff12283d),
-                                                elevation: 0,
-                                                minWidth: 350,
-                                                height: 60,
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(10)),
+                                              },
+                                              child: Text(
+                                                'Add Shortage',
+                                                style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontFamily: 'SFUIDisplay',
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white),
                                               ),
+                                              color: Color(0xff12283d),
+                                              elevation: 0,
+                                              minWidth: 350,
+                                              height: 60,
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(10)),
                                             ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                             ),
                             TextButton.icon(
-                              // <-- TextButton
-                              onPressed: () {},
-                              icon: Icon(
-                                FluentIcons.drawer_arrow_download_24_regular,
-                                size: 16.0,
-                                color: Color(0xff12283D),
-                              ),
-                              label: Text(
-                                'Invoice',
-                                style: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.w300,
-                                    fontStyle: FontStyle.normal,
-                                    color: Color(0xff12283D),
-                                    fontSize: 12),
-                              ),
+                            // <-- TextButton
+                            onPressed: () {},
+                            icon: Icon(
+                              FluentIcons.drawer_arrow_download_24_regular,
+                              size: 16.0,
+                              color: Color(0xff12283D),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                            label: Text(
+                              'Invoice',
+                              style: GoogleFonts.montserrat(
+                                  fontWeight: FontWeight.w300,
+                                  fontStyle: FontStyle.normal,
+                                  color: Color(0xff12283D),
+                                  fontSize: 12),
+                            ),
+                            ),*/
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      } else {
+                        return Center(
+                          child: Text('No data available'),
+                        );
+                      }
+                    },
                   ),
-                ),
-              )
-            ],
-          ),
+                ],
+              ),
         )),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
@@ -355,10 +602,10 @@ class _OrdersState extends State<Orders> {
                     backgroundColor: Colors.white),
                 BottomNavigationBarItem(
                     icon: Icon(
-                      FluentIcons.weather_sunny_16_regular,
+                      FluentIcons.ticket_horizontal_24_regular,
                       size: 20,
                     ),
-                    label: 'Orders',
+                    label: 'Tickets',
                     backgroundColor: Colors.white),
                 BottomNavigationBarItem(
                   icon: Icon(

@@ -40,13 +40,13 @@ class _ProfileState extends State<Profile> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: Colors.white,
-          elevation: 10,
+          elevation: 1,
           title: Text(
             'Profile',
             style: GoogleFonts.montserrat(
                 fontWeight: FontWeight.w700,
                 fontStyle: FontStyle.normal,
-                color: Color(0xff1F41BB),
+                color: Color(0xff12283D),
                 fontSize: 16),
           ),
         ),
@@ -66,16 +66,16 @@ class _ProfileState extends State<Profile> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         CircleAvatar(
-                            backgroundColor: Color(0xffB3DCF1),
+                            backgroundColor: Color(0xff12283D),
                             radius: 60,
                             child: Icon(
-                              Icons.account_circle_outlined,
+                              FluentIcons.inprivate_account_28_filled,
                               color: Colors.white,
                               size: 90,
                             ) //Text
                         ),
                         Text(
-                          'Sales Bridge',
+                          'P2P Service Manager',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: Color(0xff000000),
@@ -215,7 +215,7 @@ class _ProfileState extends State<Profile> {
               showUnselectedLabels: true,
               showSelectedLabels: true,
               selectedIconTheme: IconThemeData(
-                color: Color(0xff1F41BB),
+                color: Color(0xff12283D),
               ),
               type: BottomNavigationBarType.shifting,
               items: const <BottomNavigationBarItem>[
@@ -228,10 +228,10 @@ class _ProfileState extends State<Profile> {
                     backgroundColor: Colors.white),
                 BottomNavigationBarItem(
                     icon: Icon(
-                      FluentIcons.weather_sunny_16_regular,
+                      FluentIcons.ticket_horizontal_24_regular,
                       size: 20,
                     ),
-                    label: 'Orders',
+                    label: 'Tickets',
                     backgroundColor: Colors.white),
                 BottomNavigationBarItem(
                   icon: Icon(
@@ -242,7 +242,7 @@ class _ProfileState extends State<Profile> {
                   backgroundColor: Colors.white,
                 ),
               ],
-              selectedItemColor: Color(0xff1F41BB),
+              selectedItemColor: Color(0xff12283D),
               iconSize: 40,
               onTap: _onItemTapped,
               elevation: 15),
@@ -294,6 +294,7 @@ class _ProfileState extends State<Profile> {
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
+    prefs.clear();
     prefs.setBool('isLoggedIn', false); // Clear login status
     Navigator.pushReplacement(
       context,

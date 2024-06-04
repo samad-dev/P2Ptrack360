@@ -30,8 +30,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    checkLoginStatus();
-    // getValue();
+    //checkLoginStatus();
+    getValue();
   }
 
   Future<void> checkLoginStatus() async {
@@ -83,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
               children: [
                 Container(
                   child: Text(
-                    'Get Your Orders',
+                    'Get Your Work',
                     style: GoogleFonts.poppins(
                       textStyle: Theme.of(context).textTheme.displayLarge,
                       fontSize: 28,
@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen> {
              */
             Container(
               child: Text(
-                'Sales Bridge',
+                'P2PTrack360',
                 style: GoogleFonts.poppins(
                   textStyle: Theme.of(context).textTheme.displayLarge,
                   fontSize: 24,
@@ -133,7 +133,7 @@ class _SplashScreenState extends State<SplashScreen> {
               alignment: Alignment.center,
               padding: EdgeInsets.only(left: 80, right: 80,top: 30),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
 
@@ -160,7 +160,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       );
                     },
                   ),
-                  TextButton(
+                  /*TextButton(
                     style: ButtonStyle(
                       foregroundColor:
                           MaterialStateProperty.all<Color>(Color(0xff0A0A0A)),
@@ -174,7 +174,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         fontStyle: FontStyle.normal,
                       ),
                     ),
-                  )
+                  )*/
                 ],
               ),
             )
@@ -183,12 +183,23 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-  /*void getValue() async {
+  void getValue() async {
     var prefs = await SharedPreferences.getInstance();
-    var getName = (prefs.getString("userId") ?? "");
+    var getName = (prefs.getString("first_name") ?? "");
     // nameValue = getName != null ? getName : "No Value Saved ";
     if (getName == "") {
-      Timer(Duration(seconds: 3), () {
+      Timer(Duration(seconds: 5), () {
+
+        Navigator.pushReplacement<void, void>(
+          context,
+          MaterialPageRoute<void>(
+            builder: (BuildContext context) =>
+                Login(),
+          ),
+        );
+      });
+    } else {
+      Timer(Duration(seconds: 0), () {
 
         Navigator.pushReplacement<void, void>(
           context,
@@ -198,21 +209,10 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         );
       });
-    } else {
-      Timer(Duration(seconds: 3), () {
-
-        Navigator.pushReplacement<void, void>(
-          context,
-          MaterialPageRoute<void>(
-            builder: (BuildContext context) =>
-                MyHomePage(),
-          ),
-        );
-      });
 
     }
     setState(() {
 
     });
-  }*/
+  }
 }
