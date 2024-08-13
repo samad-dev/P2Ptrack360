@@ -412,145 +412,6 @@ class _OrdersState extends State<Orders> {
                                         Column(
                                           crossAxisAlignment: CrossAxisAlignment.end,
                                           children: [
-
-
-                                            /*SizedBox(
-                            height: 3,
-                            ),
-                            SizedBox(
-                            width: 90,
-                            height: 20,
-                            child: ElevatedButton(
-                              child: Text(
-                                'Shortage',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w100,
-                                  fontSize: 11,
-                                  fontStyle: FontStyle.normal,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                  primary: Color(0xff12283D),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18.0),
-                                  )),
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  builder: (context) {
-                                    return Container(
-                                      color: Colors.white54,
-                                      child: Column(
-                                        children: [
-                                          SizedBox(height: 30,),
-                                          Icon(
-                                            FontAwesomeIcons.cameraRetro,
-                                            color: Color(0xff12283d),
-                                            size: 160,
-                                          ),
-                                          Text(
-                                            'Click Here To Upload Photos',
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 16,
-                                              fontStyle: FontStyle.normal,
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.all(18.0),
-                                            child: SizedBox(
-                                              height: 50,
-                                              child: TextFormField(
-
-                                                onFieldSubmitted: (value) {
-                                                  print(value);
-
-                                                },
-                                                keyboardType: TextInputType.number,
-                                                style: GoogleFonts.poppins(
-                                                  color: Color(0xffa8a8a8),
-                                                  fontWeight: FontWeight.w300,
-                                                  fontSize: 16,
-                                                  fontStyle: FontStyle.normal,
-                                                ),
-                                                decoration: InputDecoration(
-                                                  hintStyle: GoogleFonts.poppins(
-                                                    color: Color(0xffa8a8a8),
-                                                    fontWeight: FontWeight.w300,
-                                                    fontSize: 16,
-                                                    fontStyle: FontStyle.normal,
-                                                  ),
-                                                  labelStyle: GoogleFonts.poppins(
-                                                    color: Color(0xffa8a8a8),
-                                                    fontWeight: FontWeight.w300,
-                                                    fontSize: 16,
-                                                    fontStyle: FontStyle.normal,
-                                                  ),
-                                                  filled: true,
-                                                  fillColor: Color(0xffF1F4FF),
-                                                  hintText: 'Recieved',
-                                                  focusedBorder: OutlineInputBorder(
-                                                      borderSide:
-                                                      BorderSide(width: 2, color: Color(0xff3b5fe0)),
-                                                      borderRadius:
-                                                      BorderRadius.all(Radius.circular(10))),
-                                                  border: OutlineInputBorder(
-                                                      borderSide:
-                                                      BorderSide(width: 2, color: Color(0xffF1F4FF)),
-                                                      borderRadius:
-                                                      BorderRadius.all(Radius.circular(10))),
-                                                  labelText: 'Recieved Qty',
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: EdgeInsets.only(top: 20),
-                                            child: MaterialButton(
-                                              onPressed: () {
-
-                                              },
-                                              child: Text(
-                                                'Add Shortage',
-                                                style: TextStyle(
-                                                    fontSize: 15,
-                                                    fontFamily: 'SFUIDisplay',
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white),
-                                              ),
-                                              color: Color(0xff12283d),
-                                              elevation: 0,
-                                              minWidth: 350,
-                                              height: 60,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(10)),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                            ),
-                            TextButton.icon(
-                            // <-- TextButton
-                            onPressed: () {},
-                            icon: Icon(
-                              FluentIcons.drawer_arrow_download_24_regular,
-                              size: 16.0,
-                              color: Color(0xff12283D),
-                            ),
-                            label: Text(
-                              'Invoice',
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.w300,
-                                  fontStyle: FontStyle.normal,
-                                  color: Color(0xff12283D),
-                                  fontSize: 12),
-                            ),
-                            ),*/
                                           ],
                                         ),
                                       ],
@@ -625,6 +486,7 @@ class _OrdersState extends State<Orders> {
     });
   }
 
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -649,3 +511,4 @@ class _OrdersState extends State<Orders> {
     }
   }
 }
+
