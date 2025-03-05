@@ -64,7 +64,7 @@ class _CreateOrderState extends State<Create_Order> {
     String companyId = prefs.getString("company_id").toString();
 
     var request = http.Request(
-        'GET', Uri.parse('http://3.137.76.254/api/status/company/$companyId'));
+        'GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/status/company/$companyId'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -85,7 +85,7 @@ class _CreateOrderState extends State<Create_Order> {
     String id = prefs.getString("id").toString();
 
     var request = http.Request(
-        'GET', Uri.parse('http://3.137.76.254/api/users/company/$companyId'));
+        'GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/users/company/$companyId'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -106,7 +106,7 @@ class _CreateOrderState extends State<Create_Order> {
     String id = prefs.getString("id").toString();
 
     var request = http.Request(
-        'GET', Uri.parse('http://3.137.76.254/api/companytype/$companyId'));
+        'GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/companytype/$companyId'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -123,7 +123,7 @@ class _CreateOrderState extends State<Create_Order> {
   }
   Future<List<dynamic>> fetchSubType(id) async {
     var request = http.Request(
-        'GET', Uri.parse('http://3.137.76.254/api/types/parent/$id'));
+        'GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/types/parent/$id'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -146,7 +146,7 @@ class _CreateOrderState extends State<Create_Order> {
     String id = prefs.getString("id").toString();
 
     var request = http.Request('GET',
-        Uri.parse('http://3.137.76.254/api/priority/company/$companyId'));
+        Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/priority/company/$companyId'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -170,7 +170,7 @@ class _CreateOrderState extends State<Create_Order> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String companyId = prefs.getString("company_id").toString();
     var request = http.Request('GET',
-        Uri.parse('http://3.137.76.254/api/business_units/$companyId'));
+        Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/business_units/$companyId'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -194,7 +194,7 @@ class _CreateOrderState extends State<Create_Order> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String companyId = prefs.getString("company_id").toString();
     var request = http.Request('GET',
-        Uri.parse('http://3.137.76.254/api/impacts/$companyId'));
+        Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/impacts/$companyId'));
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();
@@ -282,7 +282,7 @@ class _CreateOrderState extends State<Create_Order> {
     String companyId = prefs.getString("company_id").toString();
     String id = prefs.getString("id").toString();
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('http://3.137.76.254/api/tickets'));
+      var request = http.MultipartRequest('POST', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/tickets'));
       request.fields.addAll({
         'title': ticketNumberController.text,
         'description': descriptionController.text,

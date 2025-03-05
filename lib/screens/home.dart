@@ -207,8 +207,8 @@ class _HomeScreenState extends State<Home> {
     String id = prefs.getString("id").toString();
 
 
-    var request = http.Request('GET', Uri.parse('http://3.137.76.254/api/dashboard/index/$company_id/Manager/$bu_id/$id'));
-    print('http://3.137.76.254/api/dashboard/index/$company_id/Manager/$bu_id/$id');
+    var request = http.Request('GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id'));
+    print('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id');
     http.StreamedResponse response = await request.send();
     if (response.statusCode == 200) {
       var json = await response.stream.bytesToString();

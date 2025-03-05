@@ -336,7 +336,7 @@ class _LoginState extends State<Login> {
   login() async {
     var headers = {'Content-Type': 'application/json'};
     var request =
-    http.Request('POST', Uri.parse('http://3.137.76.254/api/login'));
+    http.Request('POST', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/login'));
     request.body = json.encode({
       "email": "${_emailController.text.toString()}",
       "password": "${_passwordController.text.toString()}"
@@ -361,7 +361,7 @@ class _LoginState extends State<Login> {
       prefs.setString('id', data2['id']);
       // print(data2['bu_id']);
 
-      final response2  = await http.get(Uri.parse('http://3.137.76.254/api/users2/${data2['bu_id']}/${data2['designation_id']}'));
+      final response2  = await http.get(Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/users2/${data2['bu_id']}/${data2['designation_id']}'));
 
 
       if (response2.statusCode == 200) {
