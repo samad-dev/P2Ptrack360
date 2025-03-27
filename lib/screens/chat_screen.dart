@@ -71,7 +71,7 @@ class _ChatScreen extends State<Chat> {
         ),
       ),
       body: WebView(
-        initialUrl: 'http://demo.p2ptrack360.com:8088/login',
+        initialUrl: 'https://demo.p2ptrack360.com:8088/login',
         javascriptMode: JavascriptMode.unrestricted,
         onWebViewCreated: (WebViewController webViewController) {
           _webViewController = webViewController;
