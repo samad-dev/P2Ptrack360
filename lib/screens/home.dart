@@ -134,7 +134,6 @@ class _HomeScreenState extends State<Home> {
       child: text,
     );
   }
-
   BarChartGroupData makeGroupData(int x, double y1, double y2) {
     return BarChartGroupData(
       barsSpace: 4,
@@ -153,7 +152,6 @@ class _HomeScreenState extends State<Home> {
       ],
     );
   }
-
   Widget makeTransactionsIcon() {
     const width = 4.5;
     const space = 3.5;
@@ -200,35 +198,125 @@ class _HomeScreenState extends State<Home> {
       ],
     );
   }
-  getData() async {
+  // getData() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String company_id = prefs.getString("company_id").toString();
+  //   String bu_id = prefs.getString("bu_id").toString();
+  //   String id = prefs.getString("id").toString();
+  //
+  //
+  //   var request = http.Request('GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id'));
+  //   print('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id');
+  //   http.StreamedResponse response = await request.send();
+  //   if (response.statusCode == 200) {
+  //     var json = await response.stream.bytesToString();
+  //     List<dynamic> jsons = jsonDecode(json);
+  //     print("Samad" + jsons.length.toString());
+  //     setState(() {
+  //       open = jsons.where((person) => person['status_title'] == 'Open').toList();
+  //       closed = jsons.where((person) => person['status_title'] == 'Close').toList();
+  //       pending = jsons.where((person) => person['status_title'] == 'Pending').toList();
+  //       total = jsons;
+  //       get_ChartData2(json,'status_title',ChartData2);
+  //       get_ChartData2(json,'priority_title',ChartData3);
+  //       get_ChartData2(json,'impact_title',ChartData4);
+  //     });
+  //
+  //     print('${open.length}+${closed.length}+${pending.length}=${jsons.length}');
+  //   } else {
+  //     print(response.reasonPhrase);
+  //   }
+  // }
+  getData([String? selectedAssignee, String? selectedDate, String? customDate]) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String company_id = prefs.getString("company_id").toString();
     String bu_id = prefs.getString("bu_id").toString();
     String id = prefs.getString("id").toString();
 
+    var request = http.Request(
+      'GET',
+      Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id'),
+    );
 
-    var request = http.Request('GET', Uri.parse('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id'));
     print('http://3.137.76.254:8080/Service-Manager-main-Work/public/api/dashboard/index/$company_id/Manager/$bu_id/$id');
+
     http.StreamedResponse response = await request.send();
+
     if (response.statusCode == 200) {
-      var json = await response.stream.bytesToString();
-      List<dynamic> jsons = jsonDecode(json);
-      print("Samad" + jsons.length.toString());
+      var jsonString = await response.stream.bytesToString();
+      List<dynamic> jsons = jsonDecode(jsonString);
+      print("Samad: ${jsons.length}");
+
+      DateTime? filterDate;
+
+      if (selectedDate != null && selectedDate != 'Custom date') {
+        DateTime now = DateTime.now();
+        switch (selectedDate) {
+          case 'Today':
+            filterDate = DateTime(now.year, now.month, now.day);
+            break;
+          case 'Yesterday':
+            filterDate = DateTime(now.year, now.month, now.day - 1);
+            break;
+          case 'Last two days':
+            filterDate = DateTime(now.year, now.month, now.day - 2);
+            break;
+          case 'Last week':
+            filterDate = now.subtract(Duration(days: 7));
+            break;
+          case 'Last month':
+            filterDate = DateTime(now.year, now.month - 1, now.day);
+            break;
+          case 'Date Range':
+          // Handle this if you have a specific logic for ranges
+            break;
+        }
+      } else if (selectedDate == 'Custom date' && customDate != null) {
+        filterDate = DateTime.parse(customDate); // expects format 'yyyy-MM-dd'
+      }
+      List<dynamic> filteredJson = jsons.where((item) {
+        bool matchesAssignee = true;
+        bool matchesDate = true;
+
+        // Assignee logic
+        if (selectedAssignee == 'Created by me') {
+          matchesAssignee = item['created_by'].toString() == id;
+        } else if (selectedAssignee == 'Assign to me') {
+          matchesAssignee = item['assigned_to'].toString() == id;
+        }
+
+        // Date filtering logic
+        if (filterDate != null && item['created_at'] != null) {
+          DateTime itemDate = DateTime.parse(item['created_at']);
+          matchesDate = itemDate.isAfter(filterDate);
+        }
+
+        return matchesAssignee && matchesDate;
+      }).toList();
+
       setState(() {
-        open = jsons.where((person) => person['status_title'] == 'Open').toList();
-        closed = jsons.where((person) => person['status_title'] == 'Close').toList();
-        pending = jsons.where((person) => person['status_title'] == 'Pending').toList();
-        total = jsons;
-        get_ChartData2(json,'status_title',ChartData2);
-        get_ChartData2(json,'priority_title',ChartData3);
-        get_ChartData2(json,'impact_title',ChartData4);
+        open = filteredJson.where((person) => person['status_title'] == 'Open').toList();
+        closed = filteredJson.where((person) => person['status_title'] == 'Close').toList();
+        pending = filteredJson.where((person) => person['status_title'] == 'Pending').toList();
+        total = filteredJson;
+
+        ChartData.clear();
+        ChartData2.clear();
+        ChartData3.clear();
+        ChartData4.clear();
+
+        get_ChartData2(jsonEncode(filteredJson), 'status_title', ChartData2);
+        get_ChartData2(jsonEncode(filteredJson), 'priority_title', ChartData3);
+        get_ChartData2(jsonEncode(filteredJson), 'impact_title', ChartData4);
+        getMonthlyChartData(jsonEncode(filteredJson), ChartData);
       });
 
-      print('${open.length}+${closed.length}+${pending.length}=${jsons.length}');
+      print('${open.length}+${closed.length}+${pending.length}=${filteredJson.length}');
     } else {
       print(response.reasonPhrase);
     }
   }
+
   get_detail() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     fname  = prefs.getString('first_name').toString();
@@ -250,6 +338,25 @@ class _HomeScreenState extends State<Home> {
         chartData.add(chartdata(title, occurrence));
       });
       print(chartData);
+    });
+  }
+  void getMonthlyChartData(String jsonString, List<chartdata> chartList) {
+    List<dynamic> data = jsonDecode(jsonString);
+
+    Map<String, int> monthCountMap = {};
+
+    for (var item in data) {
+      if (item['created_at'] != null) {
+        DateTime createdAt = DateTime.parse(item['created_at']);
+        String monthName = DateFormat('MMM').format(createdAt); // e.g., Jan, Feb
+
+        monthCountMap[monthName] = (monthCountMap[monthName] ?? 0) + 1;
+      }
+    }
+
+    chartList.clear();
+    monthCountMap.forEach((month, count) {
+      chartList.add(chartdata(month, count));
     });
   }
   Future<void> selectCustomDate(BuildContext context,DateController) async {
@@ -458,6 +565,10 @@ class _HomeScreenState extends State<Home> {
                                             ElevatedButton(
                                               onPressed: () {
                                                 Navigator.of(context).pop();
+                                                print('$selectedAssignee,${DateController.text},$selectedDate');
+                                                getData(selectedAssignee,selectedDate,DateController.text);
+                                                setState((){});
+
                                               },
                                               child: Text('Apply Filters'),
                                               style: ButtonStyle(
@@ -1007,6 +1118,20 @@ class _HomeScreenState extends State<Home> {
                               dataSource: ChartData3,
                               xValueMapper: (chartdata ch, _) => ch.x,
                               yValueMapper: (chartdata ch, _) => ch.y1,
+                            pointColorMapper: (chartdata ch, _) {
+                              switch (ch.x.toLowerCase()) {
+                                case 'high':
+                                  return Color(0xFF092C4C);
+                                case 'high1':
+                                  return Color(0xFF2979FF);
+                                case 'medium':
+                                  return Color(0xFF64B5F6);
+                                case 'low':
+                                  return Color(0xFF0288D1);
+                                default:
+                                  return Colors.grey; // Default color if none match
+                              }
+                            },
                               dataLabelSettings: DataLabelSettings(
                                   isVisible: true,
                                   color: Colors.white,
@@ -1107,7 +1232,7 @@ class _HomeScreenState extends State<Home> {
               MaterialPageRoute(builder: (context) => Chat()),
             );
           },
-          label: const Text('Chat'),
+          label: const Text('Chat',style: TextStyle(color: Colors.white),),
           icon: const Icon(Icons.chat_bubble_outlined, color: Colors.white, size: 25),
         ),
       bottomNavigationBar: Container(
